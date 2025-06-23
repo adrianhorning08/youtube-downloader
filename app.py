@@ -36,7 +36,8 @@ def download():
         'format': 'bv*+ba/best',
         'merge_output_format': 'mp4',
         'outtmpl': file_path,
-        'proxy': 'http://adrian6:qkZZj6aQD7vADf9j7CIv_country-US@core-residential.evomi.com:1000'
+        'proxy': 'http://adrian6:qkZZj6aQD7vADf9j7CIv_country-US@core-residential.evomi.com:1000',
+        'force_generic_extractor': False
     }
 
     try:
@@ -64,5 +65,5 @@ def download():
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5005, debug=True)
 
