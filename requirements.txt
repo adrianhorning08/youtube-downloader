@@ -1,2 +1,4 @@
 yt-dlp
 flask
+supabase
+
