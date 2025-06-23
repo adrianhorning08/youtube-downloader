@@ -1,0 +1,21 @@
+# Virtual environment
+venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# macOS files
+.DS_Store
+
+# dotenv for secrets
+.env
+
+# Render logs (optional if you output logs to file)
+*.log
+
+# Downloaded YouTube videos (just in case)
+video*.mp4
