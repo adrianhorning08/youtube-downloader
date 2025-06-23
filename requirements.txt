@@ -1,4 +1,6 @@
 yt-dlp
 flask
 supabase
+python-dotenv
+
 
