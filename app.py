@@ -164,7 +164,7 @@ def download():
         'format': 'bv*+ba/best',
         'merge_output_format': 'mp4',
         'outtmpl': file_path,
-        'proxy': getEvomiStaticResidentialProxyUrl(),
+        'proxy': "http://adrian6:qkZZj6aQD7vADf9j7CIv_country-US@core-residential.evomi.com:1000",
         'force_generic_extractor': False
     }
 
