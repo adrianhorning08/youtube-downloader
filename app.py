@@ -1,22 +1,23 @@
-from flask import Flask, request, jsonify
-from yt_dlp import YoutubeDL
-from supabase import create_client
 import os
 import time
+import uuid
+import subprocess
+from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from supabase import create_client
+from multiprocessing import Process, Queue
 import random
 
-# Load variables from .env file
 load_dotenv()
 
-# Load Supabase credentials from env vars
+app = Flask(__name__)
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-# Create Supabase client
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+BUCKET = "youtube-videos"
+PROXY = os.getenv("RESIDENTIAL_PROXY") or ""
 
-app = Flask(__name__)
 
 evomiStaticResidentialProxies = [
   "adrian:4ov6l2temn2@161.115.234.208:12345",
@@ -145,53 +146,61 @@ def getEvomiStaticResidentialProxyUrl():
   randomIndex = random.randint(0, len(evomiStaticResidentialProxies) - 1)
   return f"http://{evomiStaticResidentialProxies[randomIndex]}"
 
-@app.route('/', methods=['GET'])
-def home():
-    return 'YouTube Downloader API is running!'
 
-@app.route('/download', methods=['GET'])
-def download():
-    url = request.args.get('url')
 
-    if not url:
-        return jsonify({'error': 'Missing URL'}), 400
 
-    timestamp = int(time.time())
-    file_name = f"video-{timestamp}.mp4"
-    file_path = file_name
-
-    ydl_opts = {
-        'format': 'bv*+ba/best',
-        'merge_output_format': 'mp4',
-        'outtmpl': file_path,
-        'proxy': "http://adrian6:qkZZj6aQD7vADf9j7CIv_country-US@core-residential.evomi.com:1000",
-        'force_generic_extractor': False
-    }
-
+def download_worker(url, proxy, filename, queue):
     try:
-        # Download video
-        with YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+        args = [
+            "yt-dlp",
+            "-o", filename,
+            "--merge-output-format", "mp4",
+            "--proxy", proxy,
+            "-N", "4",
+            url
+        ]
+        result = subprocess.run(args, capture_output=True)
+        if result.returncode != 0:
+            raise Exception(result.stderr.decode())
 
-        # Upload to Supabase
-        bucket = "youtube-videos"
-        supabase.storage.from_(bucket).upload(
-            file_name,
-            file_path,
+        supabase.storage.from_(BUCKET).upload(
+            filename,
+            filename,
             {"content-type": "video/mp4"}
         )
 
-        # Remove local file
-        os.remove(file_path)
+        os.remove(filename)
 
-        # Return public URL
-        public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{file_name}"
-        return jsonify({'message': '✅ Uploaded!', 'url': public_url})
-
+        video_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{filename}"
+        queue.put({"success": True, "url": video_url})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        queue.put({"success": False, "error": str(e)})
+
+
+@app.route("/download", methods=["GET"])
+def download():
+    url = request.args.get("url")
+    if not url:
+        return jsonify({"error": "Missing URL"}), 400
+
+    unique_id = uuid.uuid4().hex
+    filename = f"video-{unique_id}.mp4"
+    queue = Queue()
+
+    p = Process(target=download_worker, args=(url, PROXY, filename, queue))
+    p.start()
+    p.join(timeout=180)
+
+    if p.is_alive():
+        p.terminate()
+        return jsonify({"error": "Download timed out"}), 500
+
+    result = queue.get()
+    if result.get("success"):
+        return jsonify({"message": "✅ Uploaded!", "url": result["url"]})
+    else:
+        return jsonify({"error": result.get("error")}), 500
 
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5005, debug=True)
-
