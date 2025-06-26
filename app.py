@@ -156,6 +156,7 @@ def download_worker(url, proxy, filename, queue):
             "-o", filename,
             "--merge-output-format", "mp4",
             "--proxy", proxy,
+            "--format", "bestvideo[ext=mp4][vcodec^=avc1]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1]",
             "-N", "4",
             url
         ]
