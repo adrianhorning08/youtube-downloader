@@ -21,6 +21,8 @@ SUPABASE_KEY
 RESIDENTIAL_PROXY
 ```
 
+I'm using Evomi core residential proxy: https://evomi.com/product/residential-proxies
+
 I'm using Supabase to store everything, use whatever storage you like.
 
 Brought to you by https://scrapecreators.com/
